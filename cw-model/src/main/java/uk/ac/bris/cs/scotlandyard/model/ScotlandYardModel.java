@@ -44,10 +44,11 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		if (mrX.colour != BLACK) { // or mr.colour.isDetective()
 			throw new IllegalArgumentException("MrX should be Black");
 		}
+
 		ArrayList<PlayerConfiguration> configurations = new ArrayList<>();
 		for (PlayerConfiguration configuration : restOfTheDetectives){
 			configurations.add(requireNonNull(configuration));
-	}
+		}
 		configurations.add(0, firstDetective);
 		configurations.add(0, mrX);
 
@@ -62,40 +63,23 @@ public class ScotlandYardModel implements ScotlandYardGame {
 			set.add(configuration.location);
 			setColour.add(configuration.colour);
 		}
-		//List ticketList = new ArrayList();
+		//Checks if detectives have any secret or double tickets and if all ticket types are present even if they are 0.
+		//Note tickets has the type Map<key, value>, using the 'get' method of Map with a given key e.g. double or
+		//secret we can retrieve the value for the given key and compare it with 0. So no need for an array list!
 
 		for (PlayerConfiguration configuration : configurations) {
-		List<Integer> ticketVales = new ArrayList<Integer>(configuration.tickets.values());
-			System.out.println(configuration.tickets.values());
-			System.out.println(configuration.tickets.keySet());
+			if (configuration.tickets.keySet().size() != 5){
+				throw new IllegalArgumentException("Missing ticket type");
+			}
 			if (configuration.colour != BLACK) {
-				if (ticketVales.get(0) != 0 ) {
+				if (configuration.tickets.get(DOUBLE) !=0) {
 					throw new IllegalArgumentException("Detective shouldn't have double ticket");
 				}
-				if (ticketVales.get(1) != 0) {
+				if (configuration.tickets.get(SECRET) !=0) {
 					throw new IllegalArgumentException("Detective shouldn't have secret ticket");
 				}
-
-
-				if (configuration.tickets.keySet().size() != 5){
-					throw new IllegalArgumentException("Missing ticket type");
-				}
-				if (configuration.colour == BLACK){
-
-
-					System.out.println(configuration.tickets.keySet());
-					if (configuration.tickets.keySet().size() != 5){
-						throw new IllegalArgumentException("Missing ticket type");
-						//System.out.println(configuration.tickets.keySet());
-					}
-				}
-
 			}
 		}
-
-
-
-		// TODO
 	}
 
 	@Override
