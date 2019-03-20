@@ -45,22 +45,36 @@ public class ScotlandYardModel implements ScotlandYardGame {
 			throw new IllegalArgumentException("MrX should be Black");
 		}
 		ArrayList<PlayerConfiguration> configurations = new ArrayList<>();
-		for (PlayerConfiguration configuration : restOfTheDetectives) {
+		for (PlayerConfiguration configuration : restOfTheDetectives){
 			configurations.add(requireNonNull(configuration));
-			configurations.add(0, firstDetective);
-			configurations.add(0, mrX);
+	}
+		configurations.add(0, firstDetective);
+		configurations.add(0, mrX);
+
+		// Checks if there are any duplicate colours or locations
+		Set<Integer> set = new HashSet<>();
+		Set<Colour> setColour = new HashSet<>();
+		for (PlayerConfiguration configuration : configurations) {
+			if (set.contains(configuration.location))
+				throw new IllegalArgumentException("Duplicate location");
+			if (setColour.contains(configuration.colour))
+				throw new IllegalArgumentException("Duplicate colour");
+			set.add(configuration.location);
+			setColour.add(configuration.colour);
 		}
 		//List ticketList = new ArrayList();
-		for (PlayerConfiguration configuration : configurations) {
 
+		for (PlayerConfiguration configuration : configurations) {
+		List<Integer> ticketVales = new ArrayList<Integer>(configuration.tickets.values());
 			System.out.println(configuration.tickets.values());
+			System.out.println(configuration.tickets.keySet());
 			if (configuration.colour != BLACK) {
-				/*if (!ticketList.get(4).equals(0) ) {
+				if (ticketVales.get(0) != 0 ) {
+					throw new IllegalArgumentException("Detective shouldn't have double ticket");
+				}
+				if (ticketVales.get(1) != 0) {
 					throw new IllegalArgumentException("Detective shouldn't have secret ticket");
 				}
-				if (!ticketList.get(3).equals(0)) {
-					throw new IllegalArgumentException("Detective shouldn't have double ticket");
-				}*/
 
 
 				if (configuration.tickets.keySet().size() != 5){
