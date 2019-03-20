@@ -13,6 +13,10 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
+		//Help
+
+
+
 		// TODO
 	}
 
