@@ -30,6 +30,8 @@ import uk.ac.bris.cs.gamekit.graph.Graph;
 public class ScotlandYardModel implements ScotlandYardGame {
 	private final List<Boolean> rounds;
 	private final Graph<Integer, Transport> graph;
+	ArrayList<Colour> playerColour = new ArrayList<>();
+	ArrayList<ScotlandYardPlayer> players = new ArrayList<>();
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -53,11 +55,11 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		configurations.add(0, firstDetective);
 		configurations.add(0, mrX);
 
-		ArrayList<ScotlandYardPlayer> players = new ArrayList<>();
+		//ArrayList<ScotlandYardPlayer> players = new ArrayList<>();
 		for (PlayerConfiguration configuration : configurations)
             players.add(new ScotlandYardPlayer(configuration.player, configuration.colour, configuration.location, configuration.tickets));
 
-		ArrayList<Colour> playerColour = new ArrayList<>();
+		//ArrayList<Colour> playerColour = new ArrayList<>();
 		for (ScotlandYardPlayer player : players)
 		    playerColour.add(player.colour());
 
@@ -118,9 +120,8 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Colour> getPlayers() {
+		System.out.println(playerColour);
         return Collections.unmodifiableList(playerColour);
-		// TODO
-        throw new RuntimeException("Implement me");
 	}
 
 	@Override
