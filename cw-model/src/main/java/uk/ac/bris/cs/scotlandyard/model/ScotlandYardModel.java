@@ -10,6 +10,8 @@ import static java.util.Objects.requireNonNull;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.DOUBLE;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.SECRET;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +52,15 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		}
 		configurations.add(0, firstDetective);
 		configurations.add(0, mrX);
+
+		ArrayList<ScotlandYardPlayer> players = new ArrayList<>();
+		for (PlayerConfiguration configuration : configurations)
+            players.add(new ScotlandYardPlayer(configuration.player, configuration.colour, configuration.location, configuration.tickets));
+
+		ArrayList<Colour> playerColour = new ArrayList<>();
+		for (ScotlandYardPlayer player : players)
+		    playerColour.add(player.colour());
+
 
 		// Checks if there are any duplicate colours or locations
 		Set<Integer> set = new HashSet<>();
@@ -107,8 +118,9 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Colour> getPlayers() {
+        return Collections.unmodifiableList(playerColour);
 		// TODO
-		throw new RuntimeException("Implement me");
+        throw new RuntimeException("Implement me");
 	}
 
 	@Override
