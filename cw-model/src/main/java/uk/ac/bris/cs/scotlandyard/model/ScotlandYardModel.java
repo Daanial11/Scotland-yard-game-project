@@ -28,16 +28,17 @@ import uk.ac.bris.cs.gamekit.graph.Graph;
 
 // TODO implement all methods and pass all tests
 public class ScotlandYardModel implements ScotlandYardGame {
-	private final List<Boolean> rounds;
-	private final Graph<Integer, Transport> graph;
-	ArrayList<Colour> playerColour = new ArrayList<>();
-	ArrayList<ScotlandYardPlayer> players = new ArrayList<>();
+	List<Boolean> rounds;
+	Graph<Integer, Transport> graph;
+	ArrayList<Colour> playerColour;
+	ArrayList<ScotlandYardPlayer> players;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
-		this.rounds = requireNonNull(rounds);
-		this.graph = requireNonNull(graph);
+
+		requireNonNull(rounds);
+		requireNonNull(graph);
 		if (rounds.isEmpty()) {
 			throw new IllegalArgumentException("Empty rounds");
 		}
@@ -55,23 +56,18 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		configurations.add(0, firstDetective);
 		configurations.add(0, mrX);
 
-		//ArrayList<ScotlandYardPlayer> players = new ArrayList<>();
-		for (PlayerConfiguration configuration : configurations)
-            players.add(new ScotlandYardPlayer(configuration.player, configuration.colour, configuration.location, configuration.tickets));
-
-		//ArrayList<Colour> playerColour = new ArrayList<>();
-		for (ScotlandYardPlayer player : players)
-		    playerColour.add(player.colour());
 
 
 		// Checks if there are any duplicate colours or locations
 		Set<Integer> set = new HashSet<>();
 		Set<Colour> setColour = new HashSet<>();
 		for (PlayerConfiguration configuration : configurations) {
-			if (set.contains(configuration.location))
+			if (set.contains(configuration.location)) {
 				throw new IllegalArgumentException("Duplicate location");
-			if (setColour.contains(configuration.colour))
+			}
+			if (setColour.contains(configuration.colour)) {
 				throw new IllegalArgumentException("Duplicate colour");
+			}
 			set.add(configuration.location);
 			setColour.add(configuration.colour);
 		}
@@ -92,7 +88,17 @@ public class ScotlandYardModel implements ScotlandYardGame {
 				}
 			}
 		}
+		this.graph = graph;
+		this.rounds = rounds;
+		this.players = new ArrayList<>();
+		for (PlayerConfiguration configuration : configurations)
+			players.add(new ScotlandYardPlayer(configuration.player, configuration.colour, configuration.location, configuration.tickets));
+
+		this.playerColour = new ArrayList<>();
+		for (ScotlandYardPlayer player : players)
+			playerColour.add(player.colour());
 	}
+
 
 	@Override
 	public void registerSpectator(Spectator spectator) {
@@ -120,7 +126,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Colour> getPlayers() {
-		System.out.println(playerColour);
+
         return Collections.unmodifiableList(playerColour);
 	}
 
@@ -168,6 +174,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public Graph<Integer, Transport> getGraph() {
+		return ImmutableGraph.;
 		// TODO
 		throw new RuntimeException("Implement me");
 	}
