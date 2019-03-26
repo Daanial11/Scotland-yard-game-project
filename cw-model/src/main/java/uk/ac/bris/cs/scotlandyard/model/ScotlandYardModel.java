@@ -144,8 +144,8 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public Optional<Integer> getPlayerTickets(Colour colour, Ticket ticket) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		//go through players, if colour given player equals this.colour return player.ticket(ticket) (which is int).
+		for(players)
 	}
 
 	@Override
