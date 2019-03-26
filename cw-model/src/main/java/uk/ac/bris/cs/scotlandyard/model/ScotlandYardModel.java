@@ -29,7 +29,7 @@ import uk.ac.bris.cs.gamekit.graph.Graph;
 // TODO implement all methods and pass all tests
 public class ScotlandYardModel implements ScotlandYardGame {
 	List<Boolean> rounds;
-	Graph<Integer, Transport> graph;
+	ImmutableGraph<Integer, Transport> graph;
 	ArrayList<Colour> playerColour;
 	ArrayList<ScotlandYardPlayer> players;
 
@@ -88,7 +88,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 				}
 			}
 		}
-		this.graph = graph;
+		this.graph = new ImmutableGraph<>(graph);
 		this.rounds = rounds;
 		this.players = new ArrayList<>();
 		for (PlayerConfiguration configuration : configurations)
@@ -168,15 +168,14 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Boolean> getRounds() {
+		return Collections.unmodifiableList(rounds);
 		// TODO
-		throw new RuntimeException("Implement me");
 	}
 
 	@Override
 	public Graph<Integer, Transport> getGraph() {
-		return ImmutableGraph.;
+		return graph;
 		// TODO
-		throw new RuntimeException("Implement me");
 	}
 
 }
