@@ -10,6 +10,7 @@ import static java.util.Objects.requireNonNull;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.*;
 
+import java.io.StreamCorruptedException;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Consumer;
@@ -25,6 +26,9 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	ImmutableGraph<Integer, Transport> graph;
 	ArrayList<Colour> playerColour;
 	ArrayList<ScotlandYardPlayer> players;
+	int playerOrder = 0;
+	int roundNumber = 0;
+	Set<Colour> winners = new HashSet<>();
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -90,6 +94,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		this.playerColour = new ArrayList<>();
 		for (ScotlandYardPlayer player : players)
 			playerColour.add(player.colour());
+
 	}
 
 
@@ -107,8 +112,13 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public void startRotate() {
+		playerOrder = 0;
+		getCurrentPlayer();
+		if (roundNumber > rounds.size()) {
+			isGameOver();
+		}
+		roundNumber++;
 		// TODO
-		throw new RuntimeException("Implement me");
 	}
 
 	@Override
@@ -119,20 +129,30 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Colour> getPlayers() {
-
         return Collections.unmodifiableList(playerColour);
 	}
 
 	@Override
 	public Set<Colour> getWinningPlayers() {
+		if(isGameOver() == true)
+		return Collections.unmodifiableSet(winners);
 		// TODOd
-		throw new RuntimeException("Implement me");
+		return Collections.unmodifiableSet(winners);
 	}
 
 	@Override
 	public Optional<Integer> getPlayerLocation(Colour colour) {
+		Optional<Integer> playerLocation = Optional.empty();
+		for (ScotlandYardPlayer person : players){
+			if (person.colour() == colour){
+				playerLocation = Optional.of(person.location());
+				if ((rounds.get(roundNumber) == false) && colour.equals(BLACK))
+					playerLocation = Optional.of(0);
+				return playerLocation;
+			}
+		}
+		return playerLocation;
 		// TODO
-		throw new RuntimeException("Implement me");
 	}
 
 	@Override
@@ -149,20 +169,36 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public boolean isGameOver() {
+		int posX =0;
+		for (ScotlandYardPlayer person : players) {
+			if (person.colour() == BLACK)
+				posX = person.location();
+			if (person.location() == posX && person.isDetective()) {
+				winners.addAll(playerColour);
+				winners.remove(BLACK);
+				return true;
+			}
+		}
+		if (roundNumber > rounds.size()) {
+			winners.add(BLACK);
+			return true;
+		}
+		return false;
 		// TODO
-		throw new RuntimeException("Implement me");
 	}
-
+	Colour currentPlayer;
 	@Override
 	public Colour getCurrentPlayer() {
+		currentPlayer = playerColour.get(playerOrder);
+		playerOrder++;
+		return currentPlayer;
 		// TODO
-		throw new RuntimeException("Implement me");
 	}
 
 	@Override
 	public int getCurrentRound() {
+		return roundNumber;
 		// TODO
-		throw new RuntimeException("Implement me");
 	}
 
 	@Override
