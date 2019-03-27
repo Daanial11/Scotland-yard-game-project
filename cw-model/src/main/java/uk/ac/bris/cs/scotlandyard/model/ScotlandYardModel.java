@@ -8,17 +8,10 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
-import static uk.ac.bris.cs.scotlandyard.model.Ticket.DOUBLE;
-import static uk.ac.bris.cs.scotlandyard.model.Ticket.SECRET;
+import static uk.ac.bris.cs.scotlandyard.model.Ticket.*;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import uk.ac.bris.cs.gamekit.graph.Edge;
 import uk.ac.bris.cs.gamekit.graph.Graph;
@@ -145,7 +138,13 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	@Override
 	public Optional<Integer> getPlayerTickets(Colour colour, Ticket ticket) {
 		//go through players, if colour given player equals this.colour return player.ticket(ticket) (which is int).
-		for(players)
+		Optional<Integer> ticketCount = Optional.empty();
+		for(ScotlandYardPlayer person : players){
+			if(person.colour() == colour){
+				ticketCount = Optional.of(person.tickets().get(ticket));
+			}
+		}
+		return ticketCount;
 	}
 
 	@Override
