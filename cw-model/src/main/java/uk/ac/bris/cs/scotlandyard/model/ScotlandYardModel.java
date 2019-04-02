@@ -14,11 +14,13 @@ import java.io.StreamCorruptedException;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Consumer;
-import uk.ac.bris.cs.gamekit.graph.Edge;
-import uk.ac.bris.cs.gamekit.graph.Graph;
-import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
+
+import uk.ac.bris.cs.gamekit.graph.*;
 
 import uk.ac.bris.cs.gamekit.graph.Graph;
+
+import javax.security.auth.callback.Callback;
+
 
 // TODO implement all methods and pass all tests
 public class ScotlandYardModel implements ScotlandYardGame {
@@ -88,13 +90,13 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		this.graph = new ImmutableGraph<>(graph);
 		this.rounds = rounds;
 		this.players = new ArrayList<>();
-		for (PlayerConfiguration configuration : configurations)
+		for (PlayerConfiguration configuration : configurations) {
 			players.add(new ScotlandYardPlayer(configuration.player, configuration.colour, configuration.location, configuration.tickets));
-
+		}
 		this.playerColour = new ArrayList<>();
-		for (ScotlandYardPlayer player : players)
+		for (ScotlandYardPlayer player : players) {
 			playerColour.add(player.colour());
-
+		}
 	}
 
 
@@ -109,17 +111,43 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		// TODO
 		throw new RuntimeException("Implement me");
 	}
+	public interface callback{
+
+	}
+
+	Set<Move> Moves = new HashSet<>();
+	Consumer<Move> moveConsumer;
 
 	@Override
 	public void startRotate() {
 		playerOrder = 0;
-		getCurrentPlayer();
+		Integer playerLocation = getPlayerLocation(getCurrentPlayer()).get();
+		
+		player(getCurrentPlayer()).makeMove(ScotlandYardModel.this, playerLocation, Moves, moveConsumer);
+		//movesMade.accept(new PassMove(getCurrentPlayer()));
 		if (roundNumber > rounds.size()) {
 			isGameOver();
 		}
 		roundNumber++;
 		// TODO
 	}
+	private Player player(Colour colour){
+		Player playerID = players.get(1).player();
+		for(ScotlandYardPlayer person: players){
+			if(person.colour() == colour){
+				return person.player();
+			}
+		}
+
+		return playerID;
+	}
+
+	private Set<Move> validMove(Colour player){
+		Set<Move> Moves = new HashSet<Move>();
+		//Moves.addAll(getGraph().getEdgesFrom(getPlayerLocation(player)))
+		return Moves;
+	}
+
 
 	@Override
 	public Collection<Spectator> getSpectators() {
