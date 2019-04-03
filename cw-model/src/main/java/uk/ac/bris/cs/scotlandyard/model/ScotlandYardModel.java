@@ -122,8 +122,8 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	public void startRotate() {
 		playerOrder = 0;
 		Integer playerLocation = getPlayerLocation(getCurrentPlayer()).get();
-		
-		player(getCurrentPlayer()).makeMove(ScotlandYardModel.this, playerLocation, Moves, moveConsumer);
+		System.out.println(getGraph().getEdgesFrom(getGraph().getNode(playerLocation)));
+		player(getCurrentPlayer()).makeMove(ScotlandYardModel.this, playerLocation, validMove(getCurrentPlayer()), moveConsumer);
 		//movesMade.accept(new PassMove(getCurrentPlayer()));
 		if (roundNumber > rounds.size()) {
 			isGameOver();
@@ -144,7 +144,8 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	private Set<Move> validMove(Colour player){
 		Set<Move> Moves = new HashSet<Move>();
-		//Moves.addAll(getGraph().getEdgesFrom(getPlayerLocation(player)))
+		Moves.addAll(getGraph().getEdgesFrom(getGraph().getNode(getPlayerLocation(player).get())));
+		new PassMove(getCurrentPlayer());
 		return Moves;
 	}
 
