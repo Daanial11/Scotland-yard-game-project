@@ -16,6 +16,7 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Consumer;
 
+import ch.qos.logback.core.pattern.color.BlackCompositeConverter;
 import javafx.scene.shape.MoveTo;
 import uk.ac.bris.cs.gamekit.graph.*;
 
@@ -184,10 +185,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	}
 
 	private Set<Move> validMove(Colour player){
-		Set<Move> Moves = new HashSet<>();
+		Set<TicketMove> Moves= new HashSet<>();
+		Set<Move> validMoves = new HashSet<>();
 		Set<Edge> Edges = new HashSet<>();
 		Set<Edge> edgesOf = new HashSet<>();
-		Set<Move> secondaryMoves = new HashSet<>();
+		Set<DoubleMove> doubleMove = new HashSet<>();
 		int x =0;
 		Edges.addAll(graph.getEdgesFrom(graph.getNode(getPlayerLocation(player).get())));
 		System.out.println(Edges);
@@ -201,27 +203,26 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			}
 
 			if(getPlayerTickets(player, DOUBLE).get() != 0){
-				edgesOf.addAll(graph.getEdgesFrom(graph.getNode(x)));
-				for (Move currentMove : Moves){
-					int destination = (Integer)currentEdge.destination().value();
-					for(Edge secondEdge: edgesOf) {
-						Transport secondTicket = (Transport) secondEdge.data();
-						if (getPlayerTickets(player, fromTransport(secondTicket)).get() != 0) {
-							destination = (Integer) secondEdge.destination().value();
-							secondaryMoves.add(new DoubleMove(BLACK, new TicketMove(BLACK, fromTransport(currentticket), x), new TicketMove(BLACK, fromTransport(secondTicket), destination)));
-						}
+				int endlocation = 0;
+				for(TicketMove firstMove : Moves){
+					edgesOf.addAll(graph.getEdgesFrom(graph.getNode(x)));
+					for (Edge edges : edgesOf){
+						Transport secondTicket = (Transport) edges.data();
+						endlocation = (Integer) edges.destination().value();
+						TicketMove secondaryMove = new TicketMove(BLACK, fromTransport(secondTicket), endlocation);
+						doubleMove.add(new DoubleMove(BLACK, firstMove, secondaryMove));
 					}
-					//edgesOf.add(graph.getEdgesFrom(graph.getNode()))  ;
 				}
-
 			}
+
 		}
 
 		System.out.println(Moves);
-		System.out.println(secondaryMoves);
+		System.out.println(doubleMove);
 		//Moves.add()
-		Moves.addAll(secondaryMoves);
-		return Moves;
+		validMoves.addAll(Moves);
+		validMoves.addAll(doubleMove);
+		return validMoves;
 	}
 
 
