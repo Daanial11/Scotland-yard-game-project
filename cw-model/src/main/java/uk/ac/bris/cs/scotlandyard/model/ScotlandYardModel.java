@@ -8,6 +8,7 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
+import static uk.ac.bris.cs.scotlandyard.model.Colour.BLUE;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.*;
 
 import java.io.StreamCorruptedException;
@@ -100,6 +101,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		for (ScotlandYardPlayer player : players) {
 			playerColour.add(player.colour());
 		}
+
 	}
 
 
@@ -116,25 +118,32 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	}
 
 
-
-
+	int count;
+	int i =1;
 	@Override
 	public void startRotate() {
-
-		Set<Move> Moves = new HashSet<>();
-		Moves.add(new PassMove(getCurrentPlayer()));
-
-
+		count++;
+		System.out.println(count);
+		//Set<Move> Moves = new HashSet<>((validMove(getCurrentPlayer())));
+		Set<Move> validMoves = new HashSet<>();
+		validMoves.add(new PassMove(getCurrentPlayer()));
 		Integer playerLocation = getPlayerLocation(getCurrentPlayer()).get();
-		//System.out.println(getGraph().getEdgesFrom(getGraph().getNode(playerLocation)));
-		player(getCurrentPlayer()).makeMove(ScotlandYardModel.this, playerLocation, Moves, this);
-		//movesMade.accept(new PassMove(getCurrentPlayer()));
+
+		player(BLACK).makeMove(ScotlandYardModel.this, getPlayerLocation(BLACK).get(), validMoves, this);
+		roundNumber++;
+		while(i!=playerColour.size()){
+			player(playerColour.get(i)).makeMove(ScotlandYardModel.this, getPlayerLocation(playerColour.get(i)).get(), validMoves, this);
+			i++;
+		}
+
 		if (roundNumber > rounds.size()) {
 			isGameOver();
 		}
-		if(getCurrentPlayer().isMrX()){
-			roundNumber++;
-		}
+		i =1;
+		//if(getCurrentPlayer().isMrX()){
+		//	roundNumber++;
+		//}
+
 
 
 		// TODO
@@ -147,10 +156,19 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	}
 	class Consumer implements MoveVisitor{
-		
-		void visit(PassMove move){
-			
+		@Override
+		public void visit(PassMove passMove){
+			passMove.visit(this);
 
+		}
+		@Override
+		public void visit(TicketMove ticketMove){
+			ticketMove.visit(this);
+		}
+
+		@Override
+		public void visit(DoubleMove doubleMove){
+			doubleMove.visit(this);
 		}
 	}
 	private Player player(Colour colour){
@@ -165,8 +183,19 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	}
 
 	private Set<Move> validMove(Colour player){
-		Set<Move> Moves = new HashSet<Move>();
-		//Moves.addAll(getGraph().getEdgesFrom(getGraph().getNode(getPlayerLocation(player).get())));
+		Set<Move> Moves = new HashSet<>();
+		Set<Edge> Edges = new HashSet<>();
+
+		Edges.addAll(graph.getEdgesFrom(graph.getNode(getPlayerLocation(player).get())));
+		System.out.println(Edges);
+		//Moves.add(new PassMove(getCurrentPlayer()));
+		for(Edge currentEdge : Edges){
+			int x =(Integer)currentEdge.destination().value();
+			//System.out.print(currentEdge.data());
+			Transport  currentticket =(Transport) currentEdge.data();
+			Moves.add(new TicketMove(getCurrentPlayer(), fromTransport(currentticket), x));
+		}
+		System.out.println(Moves);
 		//Moves.add()
 		return Moves;
 	}
@@ -198,7 +227,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			if (person.colour() == colour){
 				playerLocation = Optional.of(person.location());
 				if ((rounds.get(roundNumber) == false) && colour.equals(BLACK))
-					playerLocation = Optional.of(0);
+					playerLocation = Optional.of(person.location());
 				return playerLocation;
 			}
 		}
