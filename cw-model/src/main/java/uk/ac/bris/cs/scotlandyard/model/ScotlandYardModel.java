@@ -119,17 +119,15 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	}
 
 
-	int count;
+
 	int i =1;
 	@Override
 	public void startRotate() {
-		count++;
-		System.out.println(count);
-		//Set<Move> Moves = new HashSet<>((validMove(getCurrentPlayer())));
+
 		Set<Move> validMoves = new HashSet<>(validMove(BLACK));
 
 		player(BLACK).makeMove(ScotlandYardModel.this, getPlayerLocation(BLACK).get(), validMoves, this);
-		roundNumber++;
+
 		while(i!=playerColour.size()){
 			validMoves = validMove(playerColour.get(i));
 
@@ -183,45 +181,65 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 		return playerID;
 	}
+	// Checks if destination is already occupied by another player but returns false if detective wants to move
+	// to location occupied by mrX to capture him.
+	private Boolean isLocationOccupied(int destination){
+		for (ScotlandYardPlayer currentPlayer : players){
+			if(currentPlayer.location() == destination && !currentPlayer.isMrX()){
+				return true;
+			}
+		}
+		return false;
+	}
+	// Checks if player has enough tickets of the same type to do a double moving using only that transport
+	// e.g. double move using two buses is not possible if player bus tickets=1
+	private Boolean enoughTicketsForDouble(Colour playercolour, Transport firstTransport, Transport secondTransport){
+		if(firstTransport == secondTransport){
+			int amountOfTickets = getPlayerTickets(playercolour, fromTransport(firstTransport)).get();
+			if(amountOfTickets>= 2){
+				return true;
+			} else return false;
+		}
+		return true;
+	}
 
 	private Set<Move> validMove(Colour player){
-		Set<TicketMove> Moves= new HashSet<>();
+		Set<Edge> Edges = new HashSet<>(graph.getEdgesFrom(graph.getNode(getPlayerLocation(player).get())));
 		Set<Move> validMoves = new HashSet<>();
-		Set<Edge> Edges = new HashSet<>();
-		Set<Edge> edgesOf = new HashSet<>();
-		Set<DoubleMove> doubleMove = new HashSet<>();
-		int x =0;
-		Edges.addAll(graph.getEdgesFrom(graph.getNode(getPlayerLocation(player).get())));
-		System.out.println(Edges);
-		//Moves.add(new PassMove(getCurrentPlayer()));
-		for(Edge currentEdge : Edges){
-			Transport  currentticket =(Transport) currentEdge.data();
-			if(getPlayerTickets(player, fromTransport(currentticket)).get() !=0){
-				x =(Integer)currentEdge.destination().value();
-				Moves.add(new TicketMove(player, fromTransport(currentticket), x));
+		Set<Edge> EdgesofMove = new HashSet<>();
 
+		for(Edge possibleMove: Edges){
+			Transport transportType = (Transport)(possibleMove.data());
+			int destination = (int)possibleMove.destination().value();
+			if(getPlayerTickets(player, SECRET).get() != 0 && !isLocationOccupied(destination)){
+				validMoves.add(new TicketMove(player, SECRET, destination));
 			}
+			if(getPlayerTickets(player, fromTransport(transportType)).get() != 0 && !isLocationOccupied(destination)) {
+				validMoves.add(new TicketMove(player, fromTransport(transportType), destination));
+				EdgesofMove.addAll(graph.getEdgesFrom(graph.getNode(destination)));
+				if(getPlayerTickets(player, DOUBLE).get() !=0 && rounds.size()>=2){
+					for (Edge currentEdgeof : EdgesofMove){
+						Transport secondTransport = (Transport)(currentEdgeof.data());
+						int secondDestination = (int)currentEdgeof.destination().value();
+						if(getPlayerTickets(player, fromTransport(secondTransport)).get() != 0 && !isLocationOccupied(secondDestination) && enoughTicketsForDouble(player, transportType, secondTransport)){
+							validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, fromTransport(secondTransport), secondDestination ));
+							if(getPlayerTickets(player, SECRET).get() != 0){
+								validMoves.add(new DoubleMove(player, SECRET, destination, fromTransport(secondTransport), secondDestination ));
+								validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, SECRET, secondDestination ));
+								validMoves.add(new DoubleMove(player, SECRET, destination, SECRET, secondDestination ));
+							}
+						}
 
-			if(getPlayerTickets(player, DOUBLE).get() != 0){
-				int endlocation = 0;
-				for(TicketMove firstMove : Moves){
-					edgesOf.addAll(graph.getEdgesFrom(graph.getNode(x)));
-					for (Edge edges : edgesOf){
-						Transport secondTicket = (Transport) edges.data();
-						endlocation = (Integer) edges.destination().value();
-						TicketMove secondaryMove = new TicketMove(BLACK, fromTransport(secondTicket), endlocation);
-						doubleMove.add(new DoubleMove(BLACK, firstMove, secondaryMove));
 					}
 				}
 			}
-
+			EdgesofMove.clear();
 		}
 
-		System.out.println(Moves);
-		System.out.println(doubleMove);
-		//Moves.add()
-		validMoves.addAll(Moves);
-		validMoves.addAll(doubleMove);
+		if(validMoves.isEmpty()){
+			validMoves.add(new PassMove(player));
+		}
+
 		return validMoves;
 	}
 
