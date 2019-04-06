@@ -8,6 +8,7 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
+import static uk.ac.bris.cs.scotlandyard.model.Colour.BLUE;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.*;
 
 import java.io.StreamCorruptedException;
@@ -15,6 +16,7 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Consumer;
 
+import ch.qos.logback.core.pattern.color.BlackCompositeConverter;
 import javafx.scene.shape.MoveTo;
 import uk.ac.bris.cs.gamekit.graph.*;
 
@@ -100,6 +102,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		for (ScotlandYardPlayer player : players) {
 			playerColour.add(player.colour());
 		}
+
 	}
 
 
@@ -117,28 +120,34 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 
 
-
+	int i =1;
 	@Override
 	public void startRotate() {
 
-		Set<Move> Moves = new HashSet<>();
-		Moves.add(new PassMove(getCurrentPlayer()));
+		Set<Move> validMoves = new HashSet<>(validMove(BLACK));
 
+		player(BLACK).makeMove(ScotlandYardModel.this, getPlayerLocation(BLACK).get(), validMoves, this);
 
-		Integer playerLocation = getPlayerLocation(getCurrentPlayer()).get();
-		//System.out.println(getGraph().getEdgesFrom(getGraph().getNode(playerLocation)));
-		player(getCurrentPlayer()).makeMove(ScotlandYardModel.this, playerLocation, Moves, this);
-		//movesMade.accept(new PassMove(getCurrentPlayer()));
+		while(i!=playerColour.size()){
+			validMoves = validMove(playerColour.get(i));
+
+			player(playerColour.get(i)).makeMove(ScotlandYardModel.this, getPlayerLocation(playerColour.get(i)).get(), validMoves, this);
+			i++;
+		}
+
 		if (roundNumber > rounds.size()) {
 			isGameOver();
 		}
-		if(getCurrentPlayer().isMrX()){
-			roundNumber++;
-		}
-
-
+		i =1;
+		//if(getCurrentPlayer().isMrX()){
+		//	roundNumber++;
+		//}
+	     Move newMove = new PassMove(getCurrentPlayer());
+		 //accept(newMove.visit());
 		// TODO
 	}
+
+
 
 	public void accept(Move move){
 		Move thisMove = requireNonNull(move);
@@ -147,10 +156,19 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	}
 	class Consumer implements MoveVisitor{
-		
-		void visit(PassMove move){
-			
+		@Override
+		public void visit(PassMove passMove){
+			passMove.visit(this);
 
+		}
+		@Override
+		public void visit(TicketMove ticketMove){
+			ticketMove.visit(this);
+		}
+
+		@Override
+		public void visit(DoubleMove doubleMove){
+			doubleMove.visit(this);
 		}
 	}
 	private Player player(Colour colour){
@@ -163,12 +181,66 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 		return playerID;
 	}
+	// Checks if destination is already occupied by another player but returns false if detective wants to move
+	// to location occupied by mrX to capture him.
+	private Boolean isLocationOccupied(int destination){
+		for (ScotlandYardPlayer currentPlayer : players){
+			if(currentPlayer.location() == destination && !currentPlayer.isMrX()){
+				return true;
+			}
+		}
+		return false;
+	}
+	// Checks if player has enough tickets of the same type to do a double moving using only that transport
+	// e.g. double move using two buses is not possible if player bus tickets=1
+	private Boolean enoughTicketsForDouble(Colour playercolour, Transport firstTransport, Transport secondTransport){
+		if(firstTransport == secondTransport){
+			int amountOfTickets = getPlayerTickets(playercolour, fromTransport(firstTransport)).get();
+			if(amountOfTickets>= 2){
+				return true;
+			} else return false;
+		}
+		return true;
+	}
 
 	private Set<Move> validMove(Colour player){
-		Set<Move> Moves = new HashSet<Move>();
-		//Moves.addAll(getGraph().getEdgesFrom(getGraph().getNode(getPlayerLocation(player).get())));
-		//Moves.add()
-		return Moves;
+		Set<Edge> Edges = new HashSet<>(graph.getEdgesFrom(graph.getNode(getPlayerLocation(player).get())));
+		Set<Move> validMoves = new HashSet<>();
+		Set<Edge> EdgesofMove = new HashSet<>();
+
+		for(Edge possibleMove: Edges){
+			Transport transportType = (Transport)(possibleMove.data());
+			int destination = (int)possibleMove.destination().value();
+			if(getPlayerTickets(player, SECRET).get() != 0 && !isLocationOccupied(destination)){
+				validMoves.add(new TicketMove(player, SECRET, destination));
+			}
+			if(getPlayerTickets(player, fromTransport(transportType)).get() != 0 && !isLocationOccupied(destination)) {
+				validMoves.add(new TicketMove(player, fromTransport(transportType), destination));
+				EdgesofMove.addAll(graph.getEdgesFrom(graph.getNode(destination)));
+				if(getPlayerTickets(player, DOUBLE).get() !=0 && rounds.size()>=2){
+					for (Edge currentEdgeof : EdgesofMove){
+						Transport secondTransport = (Transport)(currentEdgeof.data());
+						int secondDestination = (int)currentEdgeof.destination().value();
+						if(getPlayerTickets(player, fromTransport(secondTransport)).get() != 0 && !isLocationOccupied(secondDestination) && enoughTicketsForDouble(player, transportType, secondTransport)){
+							validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, fromTransport(secondTransport), secondDestination ));
+							if(getPlayerTickets(player, SECRET).get() != 0){
+								validMoves.add(new DoubleMove(player, SECRET, destination, fromTransport(secondTransport), secondDestination ));
+								validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, SECRET, secondDestination ));
+								validMoves.add(new DoubleMove(player, SECRET, destination, SECRET, secondDestination ));
+							}
+						}
+
+					}
+				}
+			}
+			EdgesofMove.clear();
+		}
+
+		if(validMoves.isEmpty()){
+			validMoves.add(new PassMove(player));
+		}
+
+		return validMoves;
 	}
 
 
@@ -198,7 +270,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			if (person.colour() == colour){
 				playerLocation = Optional.of(person.location());
 				if ((rounds.get(roundNumber) == false) && colour.equals(BLACK))
-					playerLocation = Optional.of(0);
+					playerLocation = Optional.of(person.location());
 				return playerLocation;
 			}
 		}
