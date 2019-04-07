@@ -139,38 +139,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			currentPlayer++;
 		}
 	}
-	public void accept(Move move){
-
-		Move thisMove = requireNonNull(move);
-		Consumer acceptor = new Consumer();
-		thisMove.visit(acceptor);
-	}
-
-	class Consumer implements MoveVisitor{
-		@Override
-		public void visit(PassMove passMove) {
-
-		}
-
-		@Override
-		public void visit(TicketMove ticketMove) {
-			players.get(currentPlayer).location(ticketMove.destination());
-			players.get(currentPlayer).removeTicket(ticketMove.ticket());
-			if(!getCurrentPlayer().isMrX()){
-				players.get(0).addTicket(ticketMove.ticket());
-			}
-		}
-
-		@Override
-		public void visit(DoubleMove doubleMove) {
-			players.get(currentPlayer).location(doubleMove.finalDestination());
-			players.get(currentPlayer).removeTicket(DOUBLE);
-			players.get(currentPlayer).removeTicket(doubleMove.firstMove().ticket());
-			players.get(currentPlayer).removeTicket(doubleMove.secondMove().ticket());
-
-		}
-	}
-
 	private Player player(Colour colour){
 		Player playerID = players.get(0).player();
 		for(ScotlandYardPlayer person: players){
@@ -181,6 +149,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 		return playerID;
 	}
+
 	// Checks if destination is already occupied by another player but returns false if detective wants to move
 	// to location occupied by mrX to capture him.
 	private Boolean isLocationOccupied(int destination){
@@ -202,7 +171,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 		return true;
 	}
-
 	private Set<Move> validMove(Colour player){
 		Set<Edge> Edges = new HashSet<>(graph.getEdgesFrom(graph.getNode(players.get(currentPlayer).location())));
 		Set<Move> validMoves = new HashSet<>();
@@ -243,6 +211,41 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		return validMoves;
 	}
 
+
+	public void accept(Move move){
+
+		Move thisMove = requireNonNull(move);
+		if(!validMove(getCurrentPlayer()).contains(thisMove)){
+			throw new IllegalArgumentException("thisMove is not a valid move");
+		}
+		Consumer acceptor = new Consumer();
+		thisMove.visit(acceptor);
+	}
+
+	class Consumer implements MoveVisitor{
+		@Override
+		public void visit(PassMove passMove) {
+
+		}
+
+		@Override
+		public void visit(TicketMove ticketMove) {
+			players.get(currentPlayer).location(ticketMove.destination());
+			players.get(currentPlayer).removeTicket(ticketMove.ticket());
+			if(!getCurrentPlayer().isMrX()){
+				players.get(0).addTicket(ticketMove.ticket());
+			}
+		}
+
+		@Override
+		public void visit(DoubleMove doubleMove) {
+			players.get(currentPlayer).location(doubleMove.finalDestination());
+			players.get(currentPlayer).removeTicket(DOUBLE);
+			players.get(currentPlayer).removeTicket(doubleMove.firstMove().ticket());
+			players.get(currentPlayer).removeTicket(doubleMove.secondMove().ticket());
+
+		}
+	}
 
 	@Override
 	public Collection<Spectator> getSpectators() {
