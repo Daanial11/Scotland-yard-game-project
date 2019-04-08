@@ -8,6 +8,7 @@ import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLUE;
 import static uk.ac.bris.cs.scotlandyard.model.Ticket.*;
@@ -124,6 +125,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public void startRotate() {
+		if (isGameOver()){
+			throw new IllegalStateException("Game is already over, don't start rotation");
+		}
 		if(roundNumber>0 && rounds.get(roundNumber-1)){
 			MrxLastLocation = players.get(0).location();
 		}
@@ -131,10 +135,12 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		for (Colour currentColour: playerColour){
 			if(currentColour == BLACK){
 				currentPlayer=0;
-				player(currentColour).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(), validMove(currentColour), this);
+				player(currentColour).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
+						validMove(currentColour), this);
 				roundNumber++;
 			} else {
-				player(currentColour).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(), validMove(currentColour), this);
+				player(currentColour).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
+						validMove(currentColour), this);
 			}
 			currentPlayer++;
 		}
@@ -260,8 +266,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public Set<Colour> getWinningPlayers() {
-		if(isGameOver() == true)
-		return Collections.unmodifiableSet(winners);
+		if(isGameOver() == true) {
+			return Collections.unmodifiableSet(winners);
+		}
 		// TODOd
 		return Collections.unmodifiableSet(winners);
 	}
@@ -297,21 +304,57 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public boolean isGameOver() {
+		boolean gameOver = false;
+		int noTickets = 0;
+		Set<Move> detectiveTickets = new HashSet<>();
 		int posX =0;
 		for (ScotlandYardPlayer person : players) {
-			if (person.colour() == BLACK)
+			if(person.colour().isDetective()){
+				detectiveTickets.addAll(validMove(person.colour()));
+				noTickets =+ detectiveTickets.size();
+			}
+
+			if (person.colour().isMrX()) {
 				posX = person.location();
-			if (person.location() == posX && person.isDetective()) {
+				
+				if((validMove(person.colour()).isEmpty()) && (gameOver != true)){
+					gameOver = true;
+					winners.clear();
+					winners.addAll(playerColour);
+					winners.remove(BLACK);
+					System.out.println("Line 321" + gameOver);
+				}
+			}
+			if (person.isDetective() && (person.location() == posX) && (gameOver != true)) {
+				winners.clear();
 				winners.addAll(playerColour);
 				winners.remove(BLACK);
-				return true;
+				gameOver = true;
+				System.out.println("Line 329" + gameOver);
+			}
+			if (person.isMrX() && (validMove(person.colour()).isEmpty()) && (gameOver != true)) {
+				winners.clear();
+				gameOver = true;
+				winners.addAll(playerColour);
+				System.out.println("Line 335" + gameOver);
 			}
 		}
-		if (roundNumber > rounds.size()) {
+		//System.out.println(detectiveTickets);
+		if (roundNumber > rounds.size() - 1 && (gameOver != true)) {
+			winners.clear();
 			winners.add(BLACK);
-			return true;
+			gameOver = true;
+			System.out.println("Line 343" + gameOver);
 		}
-		return false;
+		if (noTickets == playerColour.size() - 1){
+			gameOver = true;
+			winners.clear();
+			winners.add(BLACK);
+		}
+		System.out.println("Line 345" + gameOver);
+		System.out.println("Total tickets " + noTickets);
+		//System.out.println(winners);
+		return gameOver;
 		// TODO
 	}
 	@Override
