@@ -125,9 +125,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public void startRotate() {
-		if (isGameOver()){
-			throw new IllegalStateException("Game is already over, don't start rotation");
-		}
+		//if (isGameOver()){
+		//	throw new IllegalStateException("Game is already over, don't start rotation");
+		//}
 		if(roundNumber>0 && rounds.get(roundNumber-1)){
 			MrxLastLocation = players.get(0).location();
 		}
