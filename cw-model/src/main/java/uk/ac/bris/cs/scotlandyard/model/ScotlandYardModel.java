@@ -178,13 +178,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		return true;
 	}
 	private Set<Move> validMove(Colour player){
-		Set<Edge> Edges = new HashSet<>(graph.getEdgesFrom(graph.getNode(players.get(currentPlayer).location())));
+		ArrayList<Object> Edges = new ArrayList<>(graph.getEdgesFrom(graph.getNode(players.get(currentPlayer).location())));
 		Set<Move> validMoves = new HashSet<>();
-		Set<Edge> EdgesofMove = new HashSet<>();
+		ArrayList<Object> EdgesofMove = new ArrayList<>();
 
-		for(Edge possibleMove: Edges){
-			Transport transportType = (Transport)(possibleMove.data());
-			int destination = (int)possibleMove.destination().value();
+		for(Object possibleMove: Edges){
+			Transport transportType = (Transport)((Edge)possibleMove).data();
+			int destination = (int)((Edge)possibleMove).destination().value();
 			if(getPlayerTickets(player, SECRET).get() != 0 && !isLocationOccupied(destination)){
 				validMoves.add(new TicketMove(player, SECRET, destination));
 			}
@@ -192,9 +192,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				validMoves.add(new TicketMove(player, fromTransport(transportType), destination));
 				EdgesofMove.addAll(graph.getEdgesFrom(graph.getNode(destination)));
 				if(getPlayerTickets(player, DOUBLE).get() !=0 && rounds.size()>=2){
-					for (Edge currentEdgeof : EdgesofMove){
-						Transport secondTransport = (Transport)(currentEdgeof.data());
-						int secondDestination = (int)currentEdgeof.destination().value();
+					for (Object currentEdgeof : EdgesofMove){
+						Transport secondTransport = (Transport)(((Edge)currentEdgeof).data());
+						int secondDestination = (int)((Edge)currentEdgeof).destination().value();
 						if(getPlayerTickets(player, fromTransport(secondTransport)).get() != 0 && !isLocationOccupied(secondDestination) && enoughTicketsForDouble(player, transportType, secondTransport)){
 							validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, fromTransport(secondTransport), secondDestination ));
 							if(getPlayerTickets(player, SECRET).get() != 0){
