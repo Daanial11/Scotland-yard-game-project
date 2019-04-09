@@ -125,9 +125,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public void startRotate() {
-		//if (isGameOver()){
-		//	throw new IllegalStateException("Game is already over, don't start rotation");
-		//}
+		if (isGameOver()){
+			throw new IllegalStateException("Game is already over, don't start rotation");
+		}
 		if(roundNumber>0 && rounds.get(roundNumber-1)){
 			MrxLastLocation = players.get(0).location();
 		}
@@ -301,17 +301,24 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 		return ticketCount;
 	}
+	private Boolean haveAnyTickets(Colour colour){
+		if(getPlayerTickets(colour, BUS).get()==0 && getPlayerTickets(colour, DOUBLE).get()==0 && getPlayerTickets(colour, SECRET).get()==0 && getPlayerTickets(colour, UNDERGROUND).get()==0 && getPlayerTickets(colour, TAXI).get()==0){
+			return false;
+		}
+		return true;
+	}
 
 	@Override
 	public boolean isGameOver() {
 		boolean gameOver = false;
-		int noTickets = 0;
+		//int noTickets = 0;
 		Set<Move> detectiveTickets = new HashSet<>();
 		int posX =0;
+		List<Boolean> detectivesHaveAnyTickets = new ArrayList<>();
 		for (ScotlandYardPlayer person : players) {
 			if(person.colour().isDetective()){
-				detectiveTickets.addAll(validMove(person.colour()));
-				noTickets =+ detectiveTickets.size();
+				detectivesHaveAnyTickets.add(haveAnyTickets(person.colour()));
+				//noTickets =+ detectiveTickets.size();
 			}
 
 			if (person.colour().isMrX()) {
@@ -346,13 +353,14 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			gameOver = true;
 			System.out.println("Line 343" + gameOver);
 		}
-		if (noTickets == playerColour.size() - 1){
+		if (!detectivesHaveAnyTickets.contains(true)){
 			gameOver = true;
 			winners.clear();
 			winners.add(BLACK);
 		}
+
 		System.out.println("Line 345" + gameOver);
-		System.out.println("Total tickets " + noTickets);
+		//System.out.println("Total tickets " + noTickets);
 		//System.out.println(winners);
 		return gameOver;
 		// TODO
