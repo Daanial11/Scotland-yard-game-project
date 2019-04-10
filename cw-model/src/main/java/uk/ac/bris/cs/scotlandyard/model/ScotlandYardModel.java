@@ -38,6 +38,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	int roundNumber = 0;
 	int MrxLastLocation =0;
 	Set<Colour> winners = new HashSet<>();
+	ArrayList<Spectator> spectatorSet;
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
@@ -106,46 +107,32 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		for (ScotlandYardPlayer player : players) {
 			playerColour.add(player.colour());
 		}
+		this.spectatorSet = new ArrayList<>();
 
 	}
 
 
 	@Override
 	public void registerSpectator(Spectator spectator) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		Spectator thisSpectator = requireNonNull(spectator);
+		if(spectatorSet.contains(thisSpectator)){
+			throw new IllegalArgumentException("Already registered");
+
+		} else spectatorSet.add(thisSpectator);
 	}
 
 	@Override
 	public void unregisterSpectator(Spectator spectator) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		Spectator thisSpectator = requireNonNull(spectator);
+
+		if(!spectatorSet.contains(thisSpectator)){
+			throw new IllegalArgumentException("Doesn't exist");
+
+		} else spectatorSet.remove(thisSpectator);
 	}
 
 
-	@Override
-	public void startRotate() {
-		if (isGameOver()){
-			throw new IllegalStateException("Game is already over, don't start rotation");
-		}
-		if(roundNumber>0 && rounds.get(roundNumber-1)){
-			MrxLastLocation = players.get(0).location();
-		}
-
-		for (Colour currentColour: playerColour){
-			if(currentColour == BLACK){
-				currentPlayer=0;
-				player(currentColour).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
-						validMove(currentColour), this);
-				roundNumber++;
-			} else {
-				player(currentColour).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
-						validMove(currentColour), this);
-			}
-			currentPlayer++;
-		}
-	}
-	private Player player(Colour colour){
+	private Player playerIDget(Colour colour){
 		Player playerID = players.get(0).player();
 		for(ScotlandYardPlayer person: players){
 			if(person.colour() == colour){
@@ -155,9 +142,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 		return playerID;
 	}
-
 	// Checks if destination is already occupied by another player but returns false if detective wants to move
 	// to location occupied by mrX to capture him.
+
 	private Boolean isLocationOccupied(int destination){
 		for (ScotlandYardPlayer currentPlayer : players){
 			if(currentPlayer.location() == destination && !currentPlayer.isMrX()){
@@ -216,6 +203,22 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 		return validMoves;
 	}
+	@Override
+	public void startRotate() {
+
+		roundCompleted=false;
+		if (isGameOver()){
+			throw new IllegalStateException("Game is already over, don't start rotation");
+		}
+		if(checkifRevealRound()){
+			MrxLastLocation = players.get(0).location();
+		}
+
+		playerIDget(getCurrentPlayer()).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
+				validMove(getCurrentPlayer()), this);
+
+
+	}
 
 
 	public void accept(Move move){
@@ -226,37 +229,150 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 		Consumer acceptor = new Consumer();
 		thisMove.visit(acceptor);
-	}
+		if(roundCompleted && !isGameOver()){
+			spectatorSet.forEach((n)->n.onRotationComplete(ScotlandYardModel.this));
+		}
 
+		//System.out.println(getCurrentPlayer());
+
+		if(!roundCompleted){
+			playerIDget(getCurrentPlayer()).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
+					validMove(getCurrentPlayer()), this);
+		}
+		System.out.println(getCurrentPlayer());
+		//if(currentPlayer==3) currentPlayer=0;
+
+		}
+
+
+
+	Boolean currentMoveDouble = false;
+	Colour recentplayer =BLACK;
+	Boolean roundCompleted =false;
 	class Consumer implements MoveVisitor{
 		@Override
 		public void visit(PassMove passMove) {
+
+			currentPlayer++;
+			if(currentPlayer==players.size()){
+				currentPlayer=0;
+				roundCompleted=true;
+			}
+			spectatorSet.forEach((n)->n.onMoveMade(ScotlandYardModel.this, passMove));
+
+
 
 		}
 
 		@Override
 		public void visit(TicketMove ticketMove) {
+			if(roundNumber!=rounds.size() && rounds.get(roundNumber)){
+				lastLocation = ticketMove.destination();
+			}
+			System.out.println(getCurrentPlayer());
+			recentplayer =getCurrentPlayer();
+
 			players.get(currentPlayer).location(ticketMove.destination());
 			players.get(currentPlayer).removeTicket(ticketMove.ticket());
-			if(!getCurrentPlayer().isMrX()){
+
+			if (getCurrentPlayer().isDetective()) {
 				players.get(0).addTicket(ticketMove.ticket());
 			}
+
+			if(getCurrentPlayer().isDetective()){
+				currentPlayer++;
+				System.out.println(currentPlayer);
+			}
+			if(currentPlayer==players.size()){
+				currentPlayer=0;
+				roundCompleted=true;
+			}
+			if (getCurrentPlayer().isMrX() && !currentMoveDouble && !roundCompleted) {
+				roundNumber++;
+				currentPlayer++;
+				spectatorSet.forEach((n) -> n.onRoundStarted(ScotlandYardModel.this, roundNumber));
+
+			}
+
+			spectatorSet.forEach((n) -> n.onMoveMade(ScotlandYardModel.this, convertTicketMovetoHidden(ticketMove)));
+
+			if(isGameOver() && roundCompleted){
+				spectatorSet.forEach((n)->n.onGameOver(ScotlandYardModel.this, getWinningPlayers()));
+			}
+
 		}
+
 
 		@Override
 		public void visit(DoubleMove doubleMove) {
-			players.get(currentPlayer).location(doubleMove.finalDestination());
+			currentMoveDouble = true;
 			players.get(currentPlayer).removeTicket(DOUBLE);
-			players.get(currentPlayer).removeTicket(doubleMove.firstMove().ticket());
-			players.get(currentPlayer).removeTicket(doubleMove.secondMove().ticket());
+			spectatorSet.forEach((n) -> n.onMoveMade(ScotlandYardModel.this, convert2xMovetoHidden(doubleMove)));
+			roundNumber++;
+			spectatorSet.forEach((n) -> n.onRoundStarted(ScotlandYardModel.this, roundNumber));
+			doubleMove.firstMove().visit(this);
+			roundNumber++;
+			spectatorSet.forEach((n) -> n.onRoundStarted(ScotlandYardModel.this, roundNumber));
+			doubleMove.secondMove().visit(this);
+			currentPlayer++;
+			currentMoveDouble = false;
+
+
+
+
+
+
 
 		}
+	}
+	private Boolean checkifRevealRound(){
+		if(roundNumber>0 && rounds.get(roundNumber-1)){
+			return true;
+		}
+		return false;
+	}
+	private Boolean checkifFirstRoundReveal(){
+		if(rounds.get(0) && roundNumber==1){
+			return true;
+		}
+		return false;
+	}
+	int lastLocation =0;
+	private DoubleMove convert2xMovetoHidden(DoubleMove move){
+		if(rounds.get(roundNumber) &&!rounds.get(roundNumber+1) && !rounds.get(roundNumber+2)){
+			lastLocation = move.firstMove().destination();
+			return new DoubleMove(getCurrentPlayer(), move.firstMove().ticket(), move.firstMove().destination(), move.secondMove().ticket(), move.firstMove().destination());
+		}
+
+		if(rounds.get(roundNumber) && !rounds.get(roundNumber +1)){
+			return new DoubleMove(getCurrentPlayer(), move.firstMove().ticket(), move.firstMove().destination(), move.secondMove().ticket(), 0);
+		}
+		else if (!rounds.get(roundNumber) && rounds.get(roundNumber +1)){
+			return new DoubleMove(getCurrentPlayer(), move.firstMove().ticket(), 0, move.secondMove().ticket(), move.secondMove().destination());
+		}
+
+		else if(!rounds.get(roundNumber) && !rounds.get(roundNumber +1)) return new DoubleMove(getCurrentPlayer(), move.firstMove().ticket(), 0, move.secondMove().ticket(), 0);
+		else return new DoubleMove(getCurrentPlayer(), move.firstMove().ticket(),move.firstMove().destination(), move.secondMove().ticket(), move.secondMove().destination());
+	}
+	private TicketMove convertTicketMovetoHidden(TicketMove move){
+		System.out.println(roundNumber);
+		System.out.println(recentplayer);
+
+		if((roundNumber>1 &&roundNumber<rounds.size()) && !rounds.get(roundNumber) && !rounds.get(roundNumber-1) && rounds.get(roundNumber-2) &&recentplayer.isMrX()) {
+			return new TicketMove(recentplayer, move.ticket(), lastLocation);
+		}
+
+		if(((rounds.get(0)&&roundNumber==1) ||(roundNumber>1 && rounds.get(roundNumber-1))) && recentplayer.isMrX()){
+			return new TicketMove(recentplayer, move.ticket(), move.destination());
+		} else if(recentplayer.isMrX()&& !rounds.get(roundNumber -1)) {
+			return new TicketMove(recentplayer, move.ticket(), lastLocation);
+		} else return new TicketMove(recentplayer, move.ticket(), move.destination());
+
 	}
 
 	@Override
 	public Collection<Spectator> getSpectators() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return unmodifiableCollection(spectatorSet);
 	}
 
 	@Override
@@ -329,7 +445,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 					winners.clear();
 					winners.addAll(playerColour);
 					winners.remove(BLACK);
-					System.out.println("Line 321" + gameOver);
+					//System.out.println("Line 427" + gameOver);
 				}
 			}
 			if (person.isDetective() && (person.location() == posX) && (gameOver != true)) {
@@ -337,13 +453,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				winners.addAll(playerColour);
 				winners.remove(BLACK);
 				gameOver = true;
-				System.out.println("Line 329" + gameOver);
+				//System.out.println("Line 435" + gameOver);
 			}
 			if (person.isMrX() && (validMove(person.colour()).isEmpty()) && (gameOver != true)) {
 				winners.clear();
 				gameOver = true;
 				winners.addAll(playerColour);
-				System.out.println("Line 335" + gameOver);
+				//System.out.println("Line 441" + gameOver);
 			}
 		}
 		//System.out.println(detectiveTickets);
@@ -351,7 +467,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			winners.clear();
 			winners.add(BLACK);
 			gameOver = true;
-			System.out.println("Line 343" + gameOver);
+			//System.out.println("Line 449" + gameOver);
 		}
 		if (!detectivesHaveAnyTickets.contains(true)){
 			gameOver = true;
@@ -359,7 +475,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			winners.add(BLACK);
 		}
 
-		System.out.println("Line 345" + gameOver);
+		//System.out.println("Line 345" + gameOver);
 		//System.out.println("Total tickets " + noTickets);
 		//System.out.println(winners);
 		return gameOver;
