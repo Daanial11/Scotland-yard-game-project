@@ -163,6 +163,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 		return true;
 	}
+
 	private Set<Move> validMove(Colour player){
 		ArrayList<Object> Edges = new ArrayList<>(graph.getEdgesFrom(graph.getNode(players.get(currentPlayer).location())));
 		Set<Move> validMoves = new HashSet<>();
@@ -196,12 +197,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			EdgesofMove.clear();
 		}
 
-		if(validMoves.isEmpty()){
+		if(validMoves.isEmpty() && player.isDetective()){
 			validMoves.add(new PassMove(player));
 		}
 
 		return validMoves;
 	}
+
 	@Override
 	public void startRotate() {
 
@@ -209,6 +211,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if (isGameOver()){
 			throw new IllegalStateException("Game is already over, don't start rotation");
 		}
+
 		if(checkifRevealRound()){
 			MrxLastLocation = players.get(0).location();
 		}
@@ -475,20 +478,29 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				gameOver = true;
 				//System.out.println("Line 435" + gameOver);
 			}
+			if(person.isMrX() && validMove(person.colour()).isEmpty()){
+				System.out.println("Mr X out of tickets so ends game");
+				gameOver = true;
+				winners.clear();
+				winners.addAll(playerColour);
+				winners.remove(BLACK);
+			}
 		}
 		EdgesMrx.removeAll(toRemove);
 		if(EdgesMrx.isEmpty()){
 			winners.clear();
 			winners.addAll(playerColour);
+			winners.remove(BLACK);
 			gameOver =true;
 		}
-		//System.out.println(detectiveTickets);
+
+			//System.out.println(detectiveTickets);
 		if (roundNumber > rounds.size() - 1 && (gameOver != true)) {
-			winners.clear();
-			winners.add(BLACK);
-			gameOver = true;
-			//System.out.println("Line 449" + gameOver);
-		}
+				winners.clear();
+				winners.add(BLACK);
+				gameOver = true;
+				//System.out.println("Line 449" + gameOver);
+			}
 		if (!detectivesHaveAnyTickets.contains(true)){
 			gameOver = true;
 			winners.clear();
