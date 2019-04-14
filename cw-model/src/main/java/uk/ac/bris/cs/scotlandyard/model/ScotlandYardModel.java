@@ -307,7 +307,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				Dectwinners =true;
 				spectatorSet.forEach((n)->n.onGameOver(ScotlandYardModel.this, getWinningPlayers()));
 			}
-
 		}
 
 		@Override
@@ -450,6 +449,14 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		return true;
 	}
 
+	private Boolean isMrXStuck (ScotlandYardPlayer person){
+		if(person.isMrX() && validMove(person.colour()).isEmpty()){
+			System.out.println("Mr X out of tickets so ends game");
+			return true;
+		}
+		return false;
+	}
+
 	@Override
 	public boolean isGameOver() {
 		boolean gameOver = false;
@@ -459,6 +466,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		List<Boolean> detectivesHaveAnyTickets = new ArrayList<>();
 		ArrayList<Object> EdgesMrx = new ArrayList<>(getGraph().getEdgesFrom(getGraph().getNode(players.get(0).location())));
 		ArrayList<Object> toRemove = new ArrayList<>();
+		Colour currentPlayer = getCurrentPlayer();
 		for (ScotlandYardPlayer person : players) {
 			if(person.colour().isDetective()){
 				int CurrentDetectivelocation = person.location();
@@ -478,13 +486,14 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				gameOver = true;
 				//System.out.println("Line 435" + gameOver);
 			}
-			if(person.isMrX() && validMove(person.colour()).isEmpty()){
-				System.out.println("Mr X out of tickets so ends game");
-				gameOver = true;
-				winners.clear();
-				winners.addAll(playerColour);
-				winners.remove(BLACK);
-			}
+
+		}
+		if(validMove(currentPlayer).isEmpty()){
+			System.out.println("Mr X out of tickets so ends game");
+			gameOver = true;
+			winners.clear();
+			winners.addAll(playerColour);
+			winners.remove(BLACK);
 		}
 		EdgesMrx.removeAll(toRemove);
 		if(EdgesMrx.isEmpty()){
