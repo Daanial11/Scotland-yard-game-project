@@ -182,7 +182,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 					for (Object currentEdgeof : EdgesofMove){
 						Transport secondTransport = (Transport)(((Edge)currentEdgeof).data());
 						int secondDestination = (int)((Edge)currentEdgeof).destination().value();
-						if(getPlayerTickets(player, fromTransport(secondTransport)).get() != 0 && !isLocationOccupied(secondDestination) && enoughTicketsForDouble(player, transportType, secondTransport)){
+						if(getPlayerTickets(player, fromTransport(secondTransport)).get() != 0 && !isLocationOccupied(secondDestination) && enoughTicketsForDouble(player, transportType, secondTransport) && (roundNumber<rounds.size()-2) ){
 							validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, fromTransport(secondTransport), secondDestination ));
 							if(getPlayerTickets(player, SECRET).get() != 0){
 								validMoves.add(new DoubleMove(player, SECRET, destination, fromTransport(secondTransport), secondDestination ));
@@ -207,10 +207,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	@Override
 	public void startRotate() {
 
-		roundCompleted=false;
 		if (isGameOver()){
 			throw new IllegalStateException("Game is already over, don't start rotation");
 		}
+		roundCompleted=false;
 
 		if(checkifRevealRound()){
 			MrxLastLocation = players.get(0).location();
@@ -232,6 +232,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if(roundCompleted && !isGameOver()){
 			spectatorSet.forEach((n)->n.onRotationComplete(ScotlandYardModel.this));
 		}
+		System.out.println(validMove(recentplayer).size());
 
 		if((!roundCompleted)&& !Dectwinners){
 			playerIDget(getCurrentPlayer()).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
@@ -504,12 +505,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 
 			//System.out.println(detectiveTickets);
-		if (roundNumber > rounds.size() - 1 && (gameOver != true)) {
+		if (roundCompleted&&roundNumber > rounds.size()-1  && (gameOver != true)) {
 				winners.clear();
 				winners.add(BLACK);
 				gameOver = true;
 				//System.out.println("Line 449" + gameOver);
 			}
+
 		if (!detectivesHaveAnyTickets.contains(true)){
 			gameOver = true;
 			winners.clear();
