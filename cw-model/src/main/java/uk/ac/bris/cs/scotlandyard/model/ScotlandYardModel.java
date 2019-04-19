@@ -169,6 +169,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		Set<Move> validMoves = new HashSet<>();
 		ArrayList<Object> EdgesofMove = new ArrayList<>();
 
+
 		for(Object possibleMove: Edges){
 			Transport transportType = (Transport)((Edge)possibleMove).data();
 			int destination = (int)((Edge)possibleMove).destination().value();
@@ -182,13 +183,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 					for (Object currentEdgeof : EdgesofMove){
 						Transport secondTransport = (Transport)(((Edge)currentEdgeof).data());
 						int secondDestination = (int)((Edge)currentEdgeof).destination().value();
+						if(getPlayerTickets(player, SECRET).get() != 0 && getPlayerTickets(player, fromTransport(secondTransport)).get() != 0 && !isLocationOccupied(secondDestination) && (roundNumber<rounds.size()-2)){
+							validMoves.add(new DoubleMove(player, SECRET, destination, fromTransport(secondTransport), secondDestination ));
+							validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, SECRET, secondDestination ));
+							validMoves.add(new DoubleMove(player, SECRET, destination, SECRET, secondDestination ));
+						}
 						if(getPlayerTickets(player, fromTransport(secondTransport)).get() != 0 && !isLocationOccupied(secondDestination) && enoughTicketsForDouble(player, transportType, secondTransport) && (roundNumber<rounds.size()-2) ){
 							validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, fromTransport(secondTransport), secondDestination ));
-							if(getPlayerTickets(player, SECRET).get() != 0){
-								validMoves.add(new DoubleMove(player, SECRET, destination, fromTransport(secondTransport), secondDestination ));
-								validMoves.add(new DoubleMove(player, fromTransport(transportType), destination, SECRET, secondDestination ));
-								validMoves.add(new DoubleMove(player, SECRET, destination, SECRET, secondDestination ));
-							}
 						}
 
 					}
@@ -215,7 +216,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if(checkifRevealRound()){
 			MrxLastLocation = players.get(0).location();
 		}
-
 		playerIDget(getCurrentPlayer()).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
 				validMove(getCurrentPlayer()), this);
 	}
@@ -232,7 +232,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if(roundCompleted && !isGameOver()){
 			spectatorSet.forEach((n)->n.onRotationComplete(ScotlandYardModel.this));
 		}
-		System.out.println(validMove(recentplayer).size());
 
 		if((!roundCompleted)&& !Dectwinners){
 			playerIDget(getCurrentPlayer()).makeMove(ScotlandYardModel.this, players.get(currentPlayer).location(),
@@ -258,11 +257,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 		@Override
 		public void visit(TicketMove ticketMove) {
-			if(getCurrentPlayer()==BLACK) System.out.println(validMove(getCurrentPlayer()));
 			if(roundNumber!=rounds.size() && rounds.get(roundNumber)){
 				lastLocation = ticketMove.destination();
 			}
-			System.out.println(getCurrentPlayer());
+
 			if(!currentMoveDouble) {
 				recentplayer = getCurrentPlayer();
 			}
@@ -286,7 +284,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 			if(recentplayer.isDetective()){
 				currentPlayer++;
-				System.out.println(currentPlayer);
 			}
 			if(currentPlayer==players.size()){
 				currentPlayer=0;
@@ -298,8 +295,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				spectatorSet.forEach((n) -> n.onRoundStarted(ScotlandYardModel.this, roundNumber));
 
 			}
-
-			spectatorSet.forEach((n) -> n.onMoveMade(ScotlandYardModel.this, convertTicketMovetoHidden(ticketMove)));
+			if(!currentMoveDouble) {
+				spectatorSet.forEach((n) -> n.onMoveMade(ScotlandYardModel.this, convertTicketMovetoHidden(ticketMove)));
+			}
 
 			if(isGameOver() && winners.contains(BLACK) &&roundCompleted){
 				spectatorSet.forEach((n)->n.onGameOver(ScotlandYardModel.this, getWinningPlayers()));
@@ -308,6 +306,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				Dectwinners =true;
 				spectatorSet.forEach((n)->n.onGameOver(ScotlandYardModel.this, getWinningPlayers()));
 			}
+
 		}
 
 		@Override
@@ -319,15 +318,21 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			spectatorSet.forEach((n) -> n.onMoveMade(ScotlandYardModel.this, convert2xMovetoHidden(doubleMove)));
 			roundNumber++;
 			players.get(0).removeTicket(doubleMove.firstMove().ticket());
-			spectatorSet.forEach((n) -> n.onRoundStarted(ScotlandYardModel.this, roundNumber));
 			doubleMove.firstMove().visit(this);
+			MrxLastLocation= convertTicketMovetoHidden(doubleMove.firstMove()).destination();
+			spectatorSet.forEach((n) -> n.onRoundStarted(ScotlandYardModel.this, roundNumber));
+			spectatorSet.forEach((n) -> n.onMoveMade(ScotlandYardModel.this, convertTicketMovetoHidden(doubleMove.firstMove())));
+			firstMoveDone=true;
 			roundNumber++;
 			players.get(0).removeTicket(doubleMove.secondMove().ticket());
-			spectatorSet.forEach((n) -> n.onRoundStarted(ScotlandYardModel.this, roundNumber));
 			doubleMove.secondMove().visit(this);
+			spectatorSet.forEach((n) -> n.onRoundStarted(ScotlandYardModel.this, roundNumber));
+			spectatorSet.forEach((n) -> n.onMoveMade(ScotlandYardModel.this, convertTicketMovetoHidden(doubleMove.secondMove())));
+			secondMoveDone=true;
 			currentMoveDouble = false;
 			firstMoveDone=false;
 			secondMoveDone=false;
+			doubleMoveCount++;
 		}
 	}
 	private Boolean checkifRevealRound(){
@@ -336,17 +341,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 		return false;
 	}
-	private Boolean checkifFirstRoundReveal(){
-		if(rounds.get(0) && roundNumber==1){
-			return true;
-		}
-		return false;
-	}
+
 	int lastLocation =0;
 	int firstMove =0;
 	int secondMove =0;
 	Boolean firstMoveDone =false;
 	Boolean secondMoveDone =false;
+	int doubleMoveCount = 0;
 
 	private DoubleMove convert2xMovetoHidden(DoubleMove move){
 		if(rounds.get(roundNumber) &&!rounds.get(roundNumber+1) && !rounds.get(roundNumber+2)){
@@ -368,9 +369,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 
 		else if(!rounds.get(roundNumber) && !rounds.get(roundNumber +1)){
-			firstMove=0;
-			secondMove=0;
-			return new DoubleMove(BLACK, move.firstMove().ticket(), 0, move.secondMove().ticket(), 0);
+			firstMove=MrxLastLocation;
+			secondMove=MrxLastLocation;
+			return new DoubleMove(BLACK, move.firstMove().ticket(),firstMove, move.secondMove().ticket(), secondMove);
 		}
 		else{
 			firstMove=move.firstMove().destination();
@@ -384,14 +385,12 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			return new TicketMove(recentplayer, move.ticket(), move.destination());
 		}
 		if(currentMoveDouble && !firstMoveDone){
-			firstMoveDone=true;
 			return new TicketMove(recentplayer, move.ticket(), firstMove);
 		}
 		if(currentMoveDouble && !secondMoveDone){
-			secondMoveDone=true;
 			return new TicketMove(recentplayer, move.ticket(), secondMove);
 		}
-		else return new TicketMove(recentplayer, move.ticket(), lastLocation);
+		else return new TicketMove(recentplayer, move.ticket(), getPlayerLocation(BLACK).get());
 
 
 	}
@@ -411,7 +410,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if(isGameOver() == true) {
 			return Collections.unmodifiableSet(winners);
 		}
-		// TODOd
 		return Collections.unmodifiableSet(winners);
 	}
 
@@ -429,7 +427,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			}
 		}
 		return playerLocation;
-		// TODO
 	}
 
 	@Override
@@ -450,19 +447,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		return true;
 	}
 
-	private Boolean isMrXStuck (ScotlandYardPlayer person){
-		if(person.isMrX() && validMove(person.colour()).isEmpty()){
-			System.out.println("Mr X out of tickets so ends game");
-			return true;
-		}
-		return false;
-	}
 
 	@Override
 	public boolean isGameOver() {
 		boolean gameOver = false;
-		//int noTickets = 0;
-		Set<Move> detectiveTickets = new HashSet<>();
 		int posX =players.get(0).location();
 		List<Boolean> detectivesHaveAnyTickets = new ArrayList<>();
 		ArrayList<Object> EdgesMrx = new ArrayList<>(getGraph().getEdgesFrom(getGraph().getNode(players.get(0).location())));
@@ -472,7 +460,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			if(person.colour().isDetective()){
 				int CurrentDetectivelocation = person.location();
 				detectivesHaveAnyTickets.add(haveAnyTickets(person.colour()));
-				//noTickets =+ detectiveTickets.size();
 				for(Object CurrentEdge: EdgesMrx){
 					int destination = (int)((Edge)CurrentEdge).destination().value();
 					if(CurrentDetectivelocation == destination){
@@ -485,12 +472,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				winners.addAll(playerColour);
 				winners.remove(BLACK);
 				gameOver = true;
-				//System.out.println("Line 435" + gameOver);
+
 			}
 
 		}
 		if(validMove(currentPlayer).isEmpty()){
-			System.out.println("Mr X out of tickets so ends game");
 			gameOver = true;
 			winners.clear();
 			winners.addAll(playerColour);
@@ -504,13 +490,13 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			gameOver =true;
 		}
 
-			//System.out.println(detectiveTickets);
+
 		if (roundCompleted&&roundNumber > rounds.size()-1  && (gameOver != true)) {
-				winners.clear();
-				winners.add(BLACK);
-				gameOver = true;
-				//System.out.println("Line 449" + gameOver);
-			}
+			winners.clear();
+			winners.add(BLACK);
+			gameOver = true;
+
+		}
 
 		if (!detectivesHaveAnyTickets.contains(true)){
 			gameOver = true;
@@ -518,33 +504,25 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			winners.add(BLACK);
 		}
 		return gameOver;
-		// TODO
 	}
 	@Override
 	public Colour getCurrentPlayer() {
-
 		return playerColour.get(currentPlayer);
-
-		// TODO
 	}
 
 	@Override
 	public int getCurrentRound() {
-
 		return roundNumber;
-		// TODO
 	}
 
 	@Override
 	public List<Boolean> getRounds() {
 		return Collections.unmodifiableList(rounds);
-		// TODO
 	}
 
 	@Override
 	public Graph<Integer, Transport> getGraph() {
 		return graph;
-		// TODO
 	}
 
 }
